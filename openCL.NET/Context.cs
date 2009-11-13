@@ -78,6 +78,18 @@ namespace openCL
 			}
 		}
 
+		public Program CreateProgram (string src, Device device, string build_options)
+		{
+			return CreateProgram (src, new Device[] {device}, build_options);
+		}
+
+		public Program CreateProgram (string src, Device[] devices, string build_options)
+		{
+			Program prog = CreateProgram (src);
+			prog.Build (devices, build_options);
+			return prog;
+		}
+
 		int GetContextInfo (ContextInfo paramName, out byte[] value, out int size)
 		{
 			IntPtr size_ret;

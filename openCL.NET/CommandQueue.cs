@@ -131,6 +131,11 @@ namespace openCL
 			Execute (kernel, null);
 		}
 
+		public void Execute (Kernel kernel, int global_work_offset, int global_work_size, int local_work_size)
+		{
+			Execute (kernel, new int[] {global_work_offset}, new int[] {global_work_size}, new int[] {local_work_size});
+		}
+
 		public void Execute (Kernel kernel, int[] global_work_offset, int[] global_work_size, int[] local_work_size)
 		{
 			Execute (kernel, global_work_offset, global_work_size, local_work_size, null);
@@ -141,6 +146,11 @@ namespace openCL
 			EventHandle eventHandle;
 			ExecuteAsync (kernel, wait_list, out eventHandle);
 			eventHandle.WaitOne ();
+		}
+
+		public void Execute (Kernel kernel, int global_work_offset, int global_work_size, int local_work_size, EventHandle[] wait_list)
+		{
+			Execute (kernel, new int[] {global_work_offset}, new int[] {global_work_size}, new int[] {local_work_size}, wait_list);
 		}
 
 		public void Execute (Kernel kernel, int[] global_work_offset, int[] global_work_size, int[] local_work_size, EventHandle[] wait_list)
@@ -155,6 +165,11 @@ namespace openCL
 			ExecuteAsync (kernel, null, out eventHandle);
 		}
 
+		public void ExecuteAsync (Kernel kernel, int global_work_offset, int global_work_size, int local_work_size, out EventHandle eventHandle)
+		{
+			ExecuteAsync (kernel, new int[] {global_work_offset}, new int[] {global_work_size}, new int[] {local_work_size}, out eventHandle);
+		}
+
 		public void ExecuteAsync (Kernel kernel, int[] global_work_offset, int[] global_work_size, int[] local_work_size, out EventHandle eventHandle)
 		{
 			ExecuteAsync (kernel, global_work_offset, global_work_size, local_work_size, null, out eventHandle);
@@ -167,6 +182,11 @@ namespace openCL
 			IntPtr event_handle;
 			OpenCLException.Check (Native.clEnqueueTask (_handle, kernel.Handle, num_waits, waits, out event_handle));
 			eventHandle = new EventHandle (event_handle);
+		}
+
+		public void ExecuteAsync (Kernel kernel, int global_work_offset, int global_work_size, int local_work_size, EventHandle[] wait_list, out EventHandle eventHandle)
+		{
+			ExecuteAsync (kernel, new int[] {global_work_offset}, new int[] {global_work_size}, new int[] {local_work_size}, wait_list,out eventHandle);
 		}
 
 		public void ExecuteAsync (Kernel kernel, int[] global_work_offset, int[] global_work_size, int[] local_work_size, EventHandle[] wait_list, out EventHandle eventHandle)
