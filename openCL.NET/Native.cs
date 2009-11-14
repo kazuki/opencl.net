@@ -135,7 +135,7 @@ namespace openCL
 			IntPtr event_wait);
 
 		[DllImport (DLL)]
-		public extern static int clEnqueueWriteBuffer (
+		public extern static int clEnqueueCopyBuffer (
 			IntPtr command_queue,
 			IntPtr src_buffer,
 			IntPtr dst_buffer,
@@ -145,18 +145,6 @@ namespace openCL
 			uint num_events_in_wait_list,
 			IntPtr[] event_wait_list,
 			out IntPtr event_wait);
-
-		[DllImport (DLL)]
-		public extern static int clEnqueueWriteBuffer (
-			IntPtr command_queue,
-			IntPtr src_buffer,
-			IntPtr dst_buffer,
-			IntPtr src_offset,
-			IntPtr dst_offset,
-			IntPtr cb,
-			uint num_events_in_wait_list,
-			IntPtr[] event_wait_list,
-			IntPtr event_wait);
 
 		[DllImport (DLL)]
 		public extern static int clReleaseMemObject (IntPtr memobj);

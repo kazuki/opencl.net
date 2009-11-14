@@ -125,6 +125,36 @@ namespace openCL
 		}
 		#endregion
 
+		#region CopyBufer
+		public void CopyBufer (Memory src, int src_offset, Memory dst, int dst_offset, int size)
+		{
+			CopyBufer (src, src_offset, dst, dst_offset, size, null);
+		}
+
+		public void CopyBufer (Memory src, int src_offset, Memory dst, int dst_offset, int size, EventHandle[] wait_list)
+		{
+			EventHandle wait;
+			CopyBuferAsync (src, src_offset, dst, dst_offset, size, wait_list, out wait);
+			wait.WaitOne ();
+		}
+
+		public void CopyBuferAsync (Memory src, int src_offset, Memory dst, int dst_offset, int size, out EventHandle eventHandle)
+		{
+			CopyBuferAsync (src, src_offset, dst, dst_offset, size, null, out eventHandle);
+		}
+
+		public void CopyBuferAsync (Memory src, int src_offset, Memory dst, int dst_offset, int size, EventHandle[] wait_list, out EventHandle eventHandle)
+		{
+			IntPtr[] waits = EventHandle.ToIntPtrArray (wait_list);
+			uint num_waits = waits == null ? 0 : (uint)waits.Length;
+			IntPtr event_handle;
+			int errcode = Native.clEnqueueCopyBuffer (_handle, src.Handle, dst.Handle, new IntPtr (src_offset), new IntPtr (dst_offset),
+				new IntPtr (size), num_waits, waits, out event_handle);
+			OpenCLException.Check (errcode);
+			eventHandle = new EventHandle (event_handle);
+		}
+		#endregion
+
 		#region Execute
 		public void Execute (Kernel kernel)
 		{
