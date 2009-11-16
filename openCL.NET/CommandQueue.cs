@@ -84,12 +84,12 @@ namespace openCL
 		#endregion
 
 		#region WriteBufer
-		public void WriteBufer (Memory buf, int buf_offset, object src, int src_offset, int size)
+		public void WriteBuffer (Memory buf, int buf_offset, object src, int src_offset, int size)
 		{
-			WriteBufer (buf, buf_offset, src, src_offset, size, null);
+			WriteBuffer (buf, buf_offset, src, src_offset, size, null);
 		}
 
-		public void WriteBufer (Memory buf, int buf_offset, object src, int src_offset, int size, EventHandle[] wait_list)
+		public void WriteBuffer (Memory buf, int buf_offset, object src, int src_offset, int size, EventHandle[] wait_list)
 		{
 			GCHandle handle = GCHandle.Alloc (src, GCHandleType.Pinned);
 			try {
