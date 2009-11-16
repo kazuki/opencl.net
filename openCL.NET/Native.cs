@@ -22,7 +22,9 @@
 //
 
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace openCL
 {
@@ -31,9 +33,33 @@ namespace openCL
 		const string DLL = "opencl.dll";
 
 		#region 4.1 Querying Platform Info
+		[DllImport (DLL)]
+		public extern static int clGetPlatformIDs (
+			uint num_entries,
+			IntPtr[] platforms,
+			out uint num_platforms
+		);
+
+		[DllImport (DLL)]
+		public extern static int clGetPlatformInfo (
+			IntPtr platform,
+			PlatformInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
+		);
 		#endregion
 
 		#region 4.2 Querying Devices
+		[DllImport (DLL)]
+		public extern static int clGetDeviceIDs (
+			IntPtr platform,
+			DeviceType device_type,
+			uint num_entries,
+			IntPtr[] devices,
+			out uint num_devices
+		);
+
 		[DllImport (DLL)]
 		public extern static int clGetDeviceInfo (
 			IntPtr device,
@@ -51,6 +77,9 @@ namespace openCL
 			IntPtr pfn_notify,
 			IntPtr user_data,
 			out int errcode_ret);
+
+		[DllImport (DLL)]
+		public extern static int clRetainContext (IntPtr context);
 
 		[DllImport (DLL)]
 		public extern static int clReleaseContext (IntPtr context);
@@ -74,7 +103,19 @@ namespace openCL
 			out int errcode_ret);
 
 		[DllImport (DLL)]
+		public extern static int clRetainCommandQueue (IntPtr command_queue);
+
+		[DllImport (DLL)]
 		public extern static int clReleaseCommandQueue (IntPtr command_queue);
+
+		[DllImport (DLL)]
+		public extern static int clGetCommandQueueInfo (
+			IntPtr command_queue,
+			CommandQueueInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
+		);
 		#endregion
 
 		#region 5.2 Memory Objects
@@ -147,7 +188,18 @@ namespace openCL
 			out IntPtr event_wait);
 
 		[DllImport (DLL)]
+		public extern static int clRetainMemObject (IntPtr memobj);
+
+		[DllImport (DLL)]
 		public extern static int clReleaseMemObject (IntPtr memobj);
+
+		[DllImport (DLL)]
+		public extern static int clGetMemObjectInfo (
+			IntPtr memobj,
+			MemInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret);
 		#endregion
 
 		#region 5.3 ...
@@ -233,6 +285,7 @@ namespace openCL
 		#endregion
 		#endregion
 
+		#region Helper Static Functions
 		public static IntPtr ToIntPtr (byte[] data, int offset)
 		{
 			if (IntPtr.Size == 4) {
@@ -241,6 +294,122 @@ namespace openCL
 				return new IntPtr (BitConverter.ToInt64 (data, offset * 8));
 			}
 		}
+
+		static MethodInfo GetMethodInfo (QueryType type)
+		{
+			string name;
+			switch (type) {
+				case QueryType.Platform: name = "clGetPlatformInfo"; break;
+				case QueryType.Device: name = "clGetDeviceInfo"; break;
+				case QueryType.Context: name = "clGetContextInfo"; break;
+				case QueryType.CommandQueue: name = "clGetCommandQueueInfo"; break;
+				case QueryType.Memory: name = "clGetMemObjectInfo"; break;
+				default: throw new ArgumentException ();
+			}
+			return typeof (Native).GetMethod (name, BindingFlags.Static | BindingFlags.Public);
+		}
+
+		static void QueryInfo (QueryType type, byte[] buf, object[] args)
+		{
+			MethodInfo mi = GetMethodInfo (type);
+			object[] args2 = new object[args.Length + 3];
+			Array.Copy (args, 0, args2, 0, args.Length);
+			args2[args.Length] = new IntPtr (buf.Length);
+			args2[args.Length + 1] = buf;
+			args2[args.Length + 2] = null;
+			OpenCLException.Check ((int)mi.Invoke (null, args2));
+		}
+
+		public static byte[] QueryInfo (QueryType type, params object[] args)
+		{
+			MethodInfo mi = GetMethodInfo (type);
+			object[] args2 = new object[args.Length + 3];
+			Array.Copy (args, 0, args2, 0, args.Length);
+			args2[args.Length] = IntPtr.Zero;
+			args2[args.Length + 1] = null;
+			args2[args.Length + 2] = null;
+			OpenCLException.Check ((int)mi.Invoke (null, args2));
+			IntPtr size = (IntPtr)args2[args.Length + 2];
+			byte[] value = new byte[size.ToInt32 ()];
+			args2[args.Length] = size;
+			args2[args.Length + 1] = value;
+			OpenCLException.Check ((int)mi.Invoke (null, args2));
+			return value;
+		}
+
+		public static string QueryInfoString (QueryType type, params object[] args)
+		{
+			return QueryInfoString (type, Encoding.ASCII, args);
+		}
+
+		public static string QueryInfoString (QueryType type, Encoding encoding, params object[] args)
+		{
+			return encoding.GetString (QueryInfo (type, args)).TrimEnd ('\0');
+		}
+
+		public static bool QueryInfoBoolean (QueryType type, params object[] args)
+		{
+			uint ret = QueryInfoUInt32 (type, args);
+			if (ret == 0)
+				return false;
+			if (ret == 1)
+				return true;
+			throw new Exception ();
+		}
+
+		public static uint QueryInfoUInt32 (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[4];
+			QueryInfo (type, buf, args);
+			return BitConverter.ToUInt32 (buf, 0);
+		}
+
+		public static int QueryInfoInt32 (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[4];
+			QueryInfo (type, buf, args);
+			return BitConverter.ToInt32 (buf, 0);
+		}
+
+		public static long QueryInfoInt64 (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[8];
+			QueryInfo (type, buf, args);
+			return BitConverter.ToInt64 (buf, 0);
+		}
+
+		public static ulong QueryInfoUInt64 (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[8];
+			QueryInfo (type, buf, args);
+			return BitConverter.ToUInt64 (buf, 0);
+		}
+
+		public static IntPtr QueryInfoSize (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[IntPtr.Size];
+			QueryInfo (type, buf, args);
+			return ToIntPtr (buf, 0);
+		}
+
+		public static IntPtr[] QueryInfoIntPtrArray (QueryType type, params object[] args)
+		{
+			byte[] buf = Native.QueryInfo (type, args);
+			IntPtr[] array = new IntPtr[buf.Length / IntPtr.Size];
+			for (int i = 0; i < array.Length; i++)
+				array[i] = Native.ToIntPtr (buf, i);
+			return array;
+		}
+		#endregion
+	}
+
+	public enum QueryType
+	{
+		Platform,
+		Device,
+		Context,
+		CommandQueue,
+		Memory,
 	}
 
 	[Flags]
@@ -253,6 +422,15 @@ namespace openCL
 		All = 0xFFFFFFFF,
 	}
 
+	public enum PlatformInfo : uint
+	{
+		Profile = 0x0900,
+		Version = 0x0901,
+		Name = 0x0902,
+		Vendor = 0x0903,
+		Extensions = 0x0904
+	}
+
 	public enum DeviceInfo : uint
 	{
 		Type = 0x1000,
@@ -261,50 +439,81 @@ namespace openCL
 		MaxWorkItemDimensions = 0x1003,
 		MaxWorkGroupSize = 0x1004,
 		MaxWorkItemSizes = 0x1005,
-		PREFERRED_VECTOR_WIDTH_CHAR = 0x1006,
-		PREFERRED_VECTOR_WIDTH_SHORT = 0x1007,
-		PREFERRED_VECTOR_WIDTH_INT = 0x1008,
-		PREFERRED_VECTOR_WIDTH_LONG = 0x1009,
-		PREFERRED_VECTOR_WIDTH_FLOAT = 0x100A,
-		PREFERRED_VECTOR_WIDTH_DOUBLE = 0x100B,
-		MAX_CLOCK_FREQUENCY = 0x100C,
-		ADDRESS_BITS = 0x100D,
-		MAX_READ_IMAGE_ARGS = 0x100E,
-		MAX_WRITE_IMAGE_ARGS = 0x100F,
-		MAX_MEM_ALLOC_SIZE = 0x1010,
-		IMAGE2D_MAX_WIDTH = 0x1011,
-		IMAGE2D_MAX_HEIGHT = 0x1012,
-		IMAGE3D_MAX_WIDTH = 0x1013,
-		IMAGE3D_MAX_HEIGHT = 0x1014,
-		IMAGE3D_MAX_DEPTH = 0x1015,
-		IMAGE_SUPPORT = 0x1016,
-		MAX_PARAMETER_SIZE = 0x1017,
-		MAX_SAMPLERS = 0x1018,
-		MEM_BASE_ADDR_ALIGN = 0x1019,
-		MIN_DATA_TYPE_ALIGN_SIZE = 0x101A,
-		SINGLE_FP_CONFIG = 0x101B,
-		GLOBAL_MEM_CACHE_TYPE = 0x101C,
-		GLOBAL_MEM_CACHELINE_SIZE = 0x101D,
-		GLOBAL_MEM_CACHE_SIZE = 0x101E,
-		GLOBAL_MEM_SIZE = 0x101F,
-		MAX_CONSTANT_BUFFER_SIZE = 0x1020,
-		MAX_CONSTANT_ARGS = 0x1021,
-		LOCAL_MEM_TYPE = 0x1022,
-		LOCAL_MEM_SIZE = 0x1023,
-		ERROR_CORRECTION_SUPPORT = 0x1024,
-		PROFILING_TIMER_RESOLUTION = 0x1025,
-		ENDIAN_LITTLE = 0x1026,
-		AVAILABLE = 0x1027,
-		COMPILER_AVAILABLE = 0x1028,
-		EXECUTION_CAPABILITIES = 0x1029,
-		QUEUE_PROPERTIES = 0x102A,
+		PreferredVectorWidthChar = 0x1006,
+		PreferredVectorWidthShort = 0x1007,
+		PreferredVectorWidthInt = 0x1008,
+		PreferredVectorWidthLong = 0x1009,
+		PreferredVectorWidthFloat = 0x100A,
+		PreferredVectorWidthDouble = 0x100B,
+		MaxClockFrequency = 0x100C,
+		AddressBits = 0x100D,
+		MaxReadImageArgs = 0x100E,
+		MaxWriteImageArgs = 0x100F,
+		MaxMemAllocSize = 0x1010,
+		Image2dMaxWidth = 0x1011,
+		Image2dMaxHeight = 0x1012,
+		Image3dMaxWidth = 0x1013,
+		Image3dMaxHeight = 0x1014,
+		Image3dMaxDepth = 0x1015,
+		ImageSupport = 0x1016,
+		MaxParameterSize = 0x1017,
+		MaxSamplers = 0x1018,
+		MemBaseAddrAlign = 0x1019,
+		MinDataTypeAlignSize = 0x101A,
+		SingleFpConfig = 0x101B,
+		GlobalMemCacheType = 0x101C,
+		GlobalMemCacheLineSize = 0x101D,
+		GlobalMemCacheSize = 0x101E,
+		GlobalMemSize = 0x101F,
+		MaxConstantBufferSize = 0x1020,
+		MaxConstantArgs = 0x1021,
+		LocalMemType = 0x1022,
+		LocalMemSize = 0x1023,
+		ErrorCorrectionSupport = 0x1024,
+		ProfilingTimerResolution = 0x1025,
+		EndianLittle = 0x1026,
+		Available = 0x1027,
+		CompilerAvailable = 0x1028,
+		ExecutionCapabilities = 0x1029,
+		QueueProperties = 0x102A,
 		Name = 0x102B,
-		VENDOR = 0x102C,
+		Vendor = 0x102C,
 		DriverVersion = 0x102D,
-		PROFILE = 0x102E,
+		Profile = 0x102E,
 		Version = 0x102F,
-		EXTENSIONS = 0x1030,
-		PLATFORM = 0x1031,
+		Extentions = 0x1030,
+		Platform = 0x1031,
+	}
+
+	[Flags]
+	public enum DeviceFpConfig : long
+	{
+		Denorm = (1 << 0),
+		Inf_NaN = (1 << 1),
+		RoundToNearest = (1 << 2),
+		RoundToZero = (1 << 3),
+		RoundToInf = (1 << 4),
+		FMA = (1 << 5),
+	}
+
+	public enum DeviceMemCacheType : uint
+	{
+		None = 0,
+		ReadOnlyCache = 1,
+		ReadWriteCache = 2
+	}
+
+	public enum DeviceLocalMemType : uint
+	{
+		Local = 1,
+		Global = 2
+	}
+
+	[Flags]
+	public enum DeviceExecCapabilities : long
+	{
+		Kernel = (1 << 0),
+		NativeKernel = (1 << 1),
 	}
 
 	public enum ContextInfo : uint
@@ -322,6 +531,14 @@ namespace openCL
 		Profiling = (1 << 1),
 	}
 
+	public enum CommandQueueInfo : uint
+	{
+		Context = 0x1090,
+		Device = 0x1091,
+		ReferenceCount = 0x1092,
+		Properties = 0x1093
+	}
+
 	[Flags]
 	public enum MemoryFlags : long
 	{
@@ -331,6 +548,24 @@ namespace openCL
 		UseHostPtr = (1 << 3),
 		AllocHostPtr = (1 << 4),
 		CopyHostPtr = (1 << 5),
+	}
+
+	public enum MemObjectType : uint
+	{
+		Buffer = 0x10F0,
+		Image2d = 0x10F1,
+		Image3d = 0x10F2
+	}
+
+	public enum MemInfo : uint
+	{
+		Type = 0x1100,
+		Flags = 0x1101,
+		Size = 0x1102,
+		HostPtr = 0x1103,
+		MapCount = 0x1104,
+		ReferenceCount = 0x1105,
+		Context = 0x1106,
 	}
 
 	public enum CL_Bool : uint

@@ -28,8 +28,10 @@ namespace openCL
 {
 	public sealed class CommandQueue : HandleBase
 	{
-		internal CommandQueue (IntPtr handle) : base (handle)
+		internal CommandQueue (IntPtr handle, bool incrementRef) : base (handle)
 		{
+			if (incrementRef)
+				Native.clRetainCommandQueue (handle);
 		}
 
 		protected override void Dispose (bool disposing)
@@ -238,6 +240,24 @@ namespace openCL
 			IntPtr event_handle;
 			OpenCLException.Check (Native.clEnqueueNDRangeKernel (_handle, kernel.Handle, work_dim, goffsets, gthreads, lthreads, num_waits, waits, out event_handle));
 			eventHandle = new EventHandle (event_handle);
+		}
+		#endregion
+
+		#region Info
+		public Context Context {
+			get { return new Context (Native.QueryInfoSize (QueryType.CommandQueue, _handle, CommandQueueInfo.Context), true); }
+		}
+
+		public Device Device {
+			get { return new Device (Native.QueryInfoSize (QueryType.CommandQueue, _handle, CommandQueueInfo.Device)); }
+		}
+
+		public uint ReferenceCount {
+			get { return Native.QueryInfoUInt32 (QueryType.CommandQueue, _handle, CommandQueueInfo.ReferenceCount); }
+		}
+
+		public CommandQueueProperties Properties {
+			get { return (CommandQueueProperties)Native.QueryInfoInt64 (QueryType.CommandQueue, _handle, CommandQueueInfo.Properties); }
 		}
 		#endregion
 	}

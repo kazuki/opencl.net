@@ -31,6 +31,12 @@ namespace openCL
 	{
 		Device[] _devices = null;
 
+		internal Context (IntPtr handle, bool incrementRef) : base (handle)
+		{
+			if (incrementRef)
+				Native.clRetainContext (handle);
+		}
+
 		public Context (DeviceType deviceType) : base (IntPtr.Zero)
 		{
 			int errcode;
@@ -48,7 +54,7 @@ namespace openCL
 			int errcode;
 			IntPtr command_queue = Native.clCreateCommandQueue (_handle, device.Handle, properties, out errcode);
 			OpenCLException.Check (errcode);
-			return new CommandQueue (command_queue);
+			return new CommandQueue (command_queue, false);
 		}
 
 		public Memory CreateBuffer (MemoryFlags flags, int size)
@@ -56,7 +62,7 @@ namespace openCL
 			int errcode;
 			IntPtr membuf = Native.clCreateBuffer (_handle, flags, new IntPtr (size), IntPtr.Zero, out errcode);
 			OpenCLException.Check (errcode);
-			return new Memory (membuf);
+			return new Memory (membuf, false);
 		}
 
 		public Program CreateProgram (string src)
@@ -90,29 +96,18 @@ namespace openCL
 			return prog;
 		}
 
-		int GetContextInfo (ContextInfo paramName, out byte[] value, out int size)
-		{
-			IntPtr size_ret;
-			int state = Native.clGetContextInfo (_handle, paramName, IntPtr.Zero, null, out size_ret);
-			if (state != 0) {
-				size = 0;
-				value = null;
-				return state;
-			}
-			size = size_ret.ToInt32 ();
-			value = new byte[size];
-			return Native.clGetContextInfo (_handle, paramName, size_ret, value, out size_ret);
+		public uint ReferenceCount {
+			get { return Native.QueryInfoUInt32 (QueryType.Context, _handle, ContextInfo.ReferenceCount); }
 		}
 
 		public Device[] Devices {
 			get {
 				if (_devices == null) {
-					byte[] value;
-					int size;
-					OpenCLException.Check (GetContextInfo (ContextInfo.Devices, out value, out size));
-					_devices = new Device[size / IntPtr.Size];
-					for (int i = 0; i < _devices.Length; i ++)
-						_devices[i] = new Device (Native.ToIntPtr (value, i));
+					IntPtr[] ptrs = Native.QueryInfoIntPtrArray (QueryType.Context, _handle, ContextInfo.Devices);
+					Device[] devices = new Device[ptrs.Length];
+					for (int i = 0; i < devices.Length; i ++)
+						devices[i] = new Device (ptrs[i]);
+					_devices = devices;
 				}
 				return _devices;
 			}

@@ -41,6 +41,7 @@
     <Compile Include="Native.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="OpenCLException.cs" />
+    <Compile Include="Platform.cs" />
     <Compile Include="Program.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -27,13 +27,43 @@ namespace openCL
 {
 	public class Memory : HandleBase
 	{
-		internal Memory (IntPtr handle) : base (handle)
+		internal Memory (IntPtr handle, bool incrementRef) : base (handle)
 		{
+			if (incrementRef)
+				Native.clRetainMemObject (handle);
 		}
 
 		protected override void Dispose (bool disposing)
 		{
 			Native.clReleaseMemObject (_handle);
+		}
+
+		public MemObjectType Type {
+			get { return (MemObjectType)Native.QueryInfoUInt32 (QueryType.Memory, _handle, MemInfo.Type); }
+		}
+
+		public MemoryFlags Flags {
+			get { return (MemoryFlags)Native.QueryInfoInt64 (QueryType.Memory, _handle, MemInfo.Flags); }
+		}
+
+		public long Size {
+			get { return Native.QueryInfoSize (QueryType.Memory, _handle, MemInfo.Size).ToInt64 (); }
+		}
+
+		public IntPtr HostPtr {
+			get { return Native.QueryInfoSize (QueryType.Memory, _handle, MemInfo.HostPtr); }
+		}
+
+		public uint MapCount {
+			get { return Native.QueryInfoUInt32 (QueryType.Memory, _handle, MemInfo.MapCount); }
+		}
+
+		public uint ReferenceCount {
+			get { return Native.QueryInfoUInt32 (QueryType.Memory, _handle, MemInfo.ReferenceCount); }
+		}
+
+		public Context Context {
+			get { return new Context (Native.QueryInfoSize (QueryType.Memory, _handle, MemInfo.Context), true); }
 		}
 	}
 }
