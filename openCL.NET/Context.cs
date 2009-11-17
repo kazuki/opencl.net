@@ -65,6 +65,14 @@ namespace openCL
 			return new Memory (membuf, false);
 		}
 
+		public Memory CreateBuffer (MemoryFlags flags, int size, GCHandle hostPtr)
+		{
+			int errcode;
+			IntPtr membuf = Native.clCreateBuffer (_handle, flags, new IntPtr (size), hostPtr.AddrOfPinnedObject (), out errcode);
+			OpenCLException.Check (errcode);
+			return new Memory (membuf, false);
+		}
+
 		public Program CreateProgram (string src)
 		{
 			byte[] raw = Encoding.UTF8.GetBytes (src);
