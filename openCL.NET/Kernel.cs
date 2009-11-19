@@ -59,5 +59,44 @@ namespace openCL
 		{
 			OpenCLException.Check (Native.clSetKernelArg (_handle, arg_index, new IntPtr (size), IntPtr.Zero));
 		}
+
+		public string FunctionName {
+			get { return Native.QueryInfoString (QueryType.Kernel, _handle, KernelInfo.FunctionName); }
+		}
+
+		public uint NumberOfArguments {
+			get { return Native.QueryInfoUInt32 (QueryType.Kernel, _handle, KernelInfo.NumArgs); }
+		}
+
+		public uint ReferenceCount {
+			get { return Native.QueryInfoUInt32 (QueryType.Kernel, _handle, KernelInfo.ReferenceCount); }
+		}
+
+		public Context Context {
+			get { return new Context (Native.QueryInfoIntPtr (QueryType.Kernel, _handle, KernelInfo.Context), true); }
+		}
+
+		public Program Program {
+			get { return new Program (Native.QueryInfoIntPtr (QueryType.Kernel, _handle, KernelInfo.Program), true); }
+		}
+
+		public int GetWorkGroupSize (Device device)
+		{
+			return Native.QueryInfoSize (QueryType.KernelWorkGroup, _handle, device.Handle, KernelWorkGroupInfo.WorkGroupSize).ToInt32 ();
+		}
+
+		public int[] GetCompileWorkGroupSize (Device device)
+		{
+			IntPtr[] temp = Native.QueryInfoIntPtrArray (QueryType.KernelWorkGroup, _handle, device.Handle, KernelWorkGroupInfo.CompileWorkGroupSize);
+			int[] ret = new int[temp.Length];
+			for (int i = 0; i < temp.Length; i ++)
+				ret[i] = temp[i].ToInt32 ();
+			return ret;
+		}
+
+		public ulong GetLocalMemorySize (Device device)
+		{
+			return Native.QueryInfoUInt64 (QueryType.KernelWorkGroup, _handle, device.Handle, KernelWorkGroupInfo.LocalMemSize);
+		}
 	}
 }

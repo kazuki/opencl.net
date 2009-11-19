@@ -216,6 +216,9 @@ namespace openCL
 		);
 
 		[DllImport (DLL)]
+		public extern static int clRetainProgram (IntPtr program);
+
+		[DllImport (DLL)]
 		public extern static int clReleaseProgram (IntPtr program);
 
 		[DllImport (DLL)]
@@ -226,6 +229,25 @@ namespace openCL
 			[MarshalAs(UnmanagedType.LPStr)]string options,
 			IntPtr pfn_notify,
 			IntPtr user_data
+		);
+
+		[DllImport (DLL)]
+		public extern static int clGetProgramInfo (
+			IntPtr program,
+			ProgramInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
+		);
+
+		[DllImport (DLL)]
+		public extern static int clGetProgramBuildInfo (
+			IntPtr program,
+			IntPtr device,
+			ProgramBuildInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
 		);
 		#endregion
 
@@ -246,6 +268,25 @@ namespace openCL
 			uint arg_index,
 			IntPtr arg_size,
 			IntPtr arg_value
+		);
+
+		[DllImport (DLL)]
+		public extern static int clGetKernelInfo (
+			IntPtr kernel,
+			KernelInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
+		);
+
+		[DllImport (DLL)]
+		public extern static int clGetKernelWorkGroupInfo (
+			IntPtr kernel,
+			IntPtr device,
+			KernelWorkGroupInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret
 		);
 		#endregion
 
@@ -304,6 +345,10 @@ namespace openCL
 				case QueryType.Context: name = "clGetContextInfo"; break;
 				case QueryType.CommandQueue: name = "clGetCommandQueueInfo"; break;
 				case QueryType.Memory: name = "clGetMemObjectInfo"; break;
+				case QueryType.Program: name = "clGetProgramInfo"; break;
+				case QueryType.ProgramBuild: name = "clGetProgramBuildInfo"; break;
+				case QueryType.Kernel: name = "clGetKernelInfo"; break;
+				case QueryType.KernelWorkGroup: name = "clGetKernelWorkGroupInfo"; break;
 				default: throw new ArgumentException ();
 			}
 			return typeof (Native).GetMethod (name, BindingFlags.Static | BindingFlags.Public);
@@ -392,6 +437,11 @@ namespace openCL
 			return ToIntPtr (buf, 0);
 		}
 
+		public static IntPtr QueryInfoIntPtr (QueryType type, params object[] args)
+		{
+			return QueryInfoSize (type, args);
+		}
+
 		public static IntPtr[] QueryInfoIntPtrArray (QueryType type, params object[] args)
 		{
 			byte[] buf = Native.QueryInfo (type, args);
@@ -410,6 +460,10 @@ namespace openCL
 		Context,
 		CommandQueue,
 		Memory,
+		Program,
+		ProgramBuild,
+		Kernel,
+		KernelWorkGroup,
 	}
 
 	[Flags]
@@ -572,5 +626,47 @@ namespace openCL
 	{
 		False = 0,
 		True = 1
+	}
+
+	public enum ProgramInfo : uint
+	{
+		ReferenceCount = 0x1160,
+		Context = 0x1161,
+		NumDevices = 0x1162,
+		Devices = 0x1163,
+		Source = 0x1164,
+		BinarySizes = 0x1165,
+		Binaries = 0x1166,
+	}
+
+	public enum ProgramBuildInfo : uint
+	{
+		Status = 0x1181,
+		Options = 0x1182,
+		Log = 0x1183,
+	}
+
+	public enum BuildStatus : int
+	{
+		Success = 0,
+		None = -1,
+		Error = -2,
+		InProgress = -3,
+	}
+
+	public enum KernelInfo : uint
+	{
+		FunctionName = 0x1190,
+		NumArgs = 0x1191,
+		ReferenceCount = 0x1192,
+		Context = 0x1193,
+		Program = 0x1194,
+	}
+
+	public enum KernelWorkGroupInfo : uint
+	{
+		WorkGroupSize = 0x11B0,
+		CompileWorkGroupSize = 0x11B1,
+		LocalMemSize = 0x11B2,
 	}
 }

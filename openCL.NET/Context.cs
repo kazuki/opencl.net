@@ -84,7 +84,7 @@ namespace openCL
 				IntPtr prog = Native.clCreateProgramWithSource (_handle, 1, handle2.AddrOfPinnedObject (),
 					handle3.AddrOfPinnedObject (), out errcode);
 				OpenCLException.Check (errcode);
-				return new Program (prog);
+				return new Program (prog, false);
 			} finally {
 				handle.Free ();
 				handle2.Free ();

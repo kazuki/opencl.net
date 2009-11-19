@@ -27,8 +27,10 @@ namespace openCL
 {
 	public class Program : HandleBase
 	{
-		public Program (IntPtr handle) : base (handle)
+		public Program (IntPtr handle, bool incrementRef) : base (handle)
 		{
+			if (incrementRef)
+				Native.clRetainProgram (handle);
 		}
 
 		protected override void Dispose (bool disposing)
@@ -52,6 +54,47 @@ namespace openCL
 			IntPtr kernel = Native.clCreateKernel (_handle, name, out errcode);
 			OpenCLException.Check (errcode);
 			return new Kernel (kernel);
+		}
+
+		public string GetBuildLog (Device device)
+		{
+			return Native.QueryInfoString (QueryType.ProgramBuild, _handle, device.Handle, ProgramBuildInfo.Log);
+		}
+
+		public string GetBuildOptions (Device device)
+		{
+			return Native.QueryInfoString (QueryType.ProgramBuild, _handle, device.Handle, ProgramBuildInfo.Options);
+		}
+
+		public BuildStatus GetBuildStatus (Device device)
+		{
+			return (BuildStatus)Native.QueryInfoInt32 (QueryType.ProgramBuild, _handle, device.Handle, ProgramBuildInfo.Status);
+		}
+
+		public uint ReferenceCount {
+			get { return Native.QueryInfoUInt32 (QueryType.Program, _handle, ProgramInfo.ReferenceCount); }
+		}
+
+		public Context Context {
+			get { return new Context (Native.QueryInfoIntPtr (QueryType.Program, _handle, ProgramInfo.Context), true); }
+		}
+
+		public uint NumberOfDevices {
+			get { return Native.QueryInfoUInt32 (QueryType.Program, _handle, ProgramInfo.NumDevices); }
+		}
+
+		public string ProgramSource {
+			get { return Native.QueryInfoString (QueryType.Program, _handle, ProgramInfo.Source); }
+		}
+
+		public int[] BinarySizes {
+			get {
+				IntPtr[] sizes = Native.QueryInfoIntPtrArray (QueryType.Program, _handle, ProgramInfo.BinarySizes);
+				int[] ret = new int[sizes.Length];
+				for (int i = 0; i < sizes.Length; i ++)
+					ret[i] = sizes[i].ToInt32 ();
+				return ret;
+			}
 		}
 	}
 }
