@@ -30,7 +30,7 @@ namespace openCL
 {
 	static class Native
 	{
-		const string DLL = "opencl.dll";
+		const string DLL = "OpenCL";
 
 		#region 4.1 Querying Platform Info
 		[DllImport (DLL)]
