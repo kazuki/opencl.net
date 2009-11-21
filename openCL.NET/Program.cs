@@ -22,6 +22,7 @@
 //
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace openCL
 {
@@ -95,6 +96,32 @@ namespace openCL
 					ret[i] = sizes[i].ToInt32 ();
 				return ret;
 			}
+		}
+
+		public byte[][] GetBinaries ()
+		{
+			int[] sizes = BinarySizes;
+			byte[][] binaries = new byte[sizes.Length][];
+			GCHandle[] handles = new GCHandle[sizes.Length];
+			byte[] ptrs = new byte[IntPtr.Size * sizes.Length];
+			for (int i = 0; i < binaries.Length; i ++) {
+				binaries[i] = new byte[sizes[i]];
+				handles[i] = GCHandle.Alloc (binaries[i], GCHandleType.Pinned);
+				byte[] raw = Native.FromIntPtr (handles[i].AddrOfPinnedObject ());
+				Array.Copy (raw, 0, ptrs, i * IntPtr.Size, IntPtr.Size);
+			}
+			try {
+				Native.QueryInfoDirect (QueryType.Program, ptrs, _handle, ProgramInfo.Binaries);
+			} finally {
+				for (int i = 0; i < handles.Length; i ++)
+					handles[i].Free ();
+			}
+
+			using (System.IO.FileStream strm = new System.IO.FileStream ("test.bc", System.IO.FileMode.Create)) {
+				strm.Write (binaries[0], 0, binaries[0].Length);
+			}
+
+			return binaries;
 		}
 	}
 }

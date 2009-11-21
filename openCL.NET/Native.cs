@@ -336,6 +336,15 @@ namespace openCL
 			}
 		}
 
+		public static byte[] FromIntPtr (IntPtr ptr)
+		{
+			if (IntPtr.Size == 4) {
+				return BitConverter.GetBytes (ptr.ToInt32 ());
+			} else {
+				return BitConverter.GetBytes (ptr.ToInt64 ());
+			}
+		}
+
 		static MethodInfo GetMethodInfo (QueryType type)
 		{
 			string name;
@@ -354,7 +363,7 @@ namespace openCL
 			return typeof (Native).GetMethod (name, BindingFlags.Static | BindingFlags.Public);
 		}
 
-		static void QueryInfo (QueryType type, byte[] buf, object[] args)
+		public static void QueryInfoDirect (QueryType type, byte[] buf, params object[] args)
 		{
 			MethodInfo mi = GetMethodInfo (type);
 			object[] args2 = new object[args.Length + 3];
@@ -405,35 +414,35 @@ namespace openCL
 		public static uint QueryInfoUInt32 (QueryType type, params object[] args)
 		{
 			byte[] buf = new byte[4];
-			QueryInfo (type, buf, args);
+			QueryInfoDirect (type, buf, args);
 			return BitConverter.ToUInt32 (buf, 0);
 		}
 
 		public static int QueryInfoInt32 (QueryType type, params object[] args)
 		{
 			byte[] buf = new byte[4];
-			QueryInfo (type, buf, args);
+			QueryInfoDirect (type, buf, args);
 			return BitConverter.ToInt32 (buf, 0);
 		}
 
 		public static long QueryInfoInt64 (QueryType type, params object[] args)
 		{
 			byte[] buf = new byte[8];
-			QueryInfo (type, buf, args);
+			QueryInfoDirect (type, buf, args);
 			return BitConverter.ToInt64 (buf, 0);
 		}
 
 		public static ulong QueryInfoUInt64 (QueryType type, params object[] args)
 		{
 			byte[] buf = new byte[8];
-			QueryInfo (type, buf, args);
+			QueryInfoDirect (type, buf, args);
 			return BitConverter.ToUInt64 (buf, 0);
 		}
 
 		public static IntPtr QueryInfoSize (QueryType type, params object[] args)
 		{
 			byte[] buf = new byte[IntPtr.Size];
-			QueryInfo (type, buf, args);
+			QueryInfoDirect (type, buf, args);
 			return ToIntPtr (buf, 0);
 		}
 
