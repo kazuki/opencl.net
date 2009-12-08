@@ -411,6 +411,14 @@ namespace openCL
 		[DllImport (DLL)]
 		public extern static int clReleaseEvent (IntPtr event_handle);
 		#endregion
+
+		#region 5.10 Flush and Finish
+		[DllImport (DLL)]
+		public extern static int clFlush (IntPtr command_queue);
+
+		[DllImport (DLL)]
+		public extern static int clFinish (IntPtr command_queue);
+		#endregion
 		#endregion
 
 		#region Helper Static Functions

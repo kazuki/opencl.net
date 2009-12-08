@@ -366,6 +366,18 @@ namespace openCL
 		}
 		#endregion
 
+		#region Flush/Finish
+		public void Flush ()
+		{
+			OpenCLException.Check (Native.clFlush (_handle));
+		}
+
+		public void Finish ()
+		{
+			OpenCLException.Check (Native.clFinish (_handle));
+		}
+		#endregion
+
 		#region Info
 		public Context Context {
 			get { return _context; }
