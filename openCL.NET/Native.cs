@@ -203,6 +203,50 @@ namespace openCL
 		public extern static int clReleaseMemObject (IntPtr memobj);
 
 		[DllImport (DLL)]
+		public extern static IntPtr clEnqueueMapBuffer (
+			IntPtr command_queue,
+			IntPtr buffer,
+			CL_Bool blocking_map,
+			MapFlags map_flags,
+			IntPtr offset,
+			IntPtr cb,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			out IntPtr event_wait,
+			out int errcode_ret);
+
+		[DllImport (DLL)]
+		public extern static IntPtr clEnqueueMapBuffer (
+			IntPtr command_queue,
+			IntPtr buffer,
+			CL_Bool blocking_map,
+			MapFlags map_flags,
+			IntPtr offset,
+			IntPtr cb,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			IntPtr event_wait,
+			out int errcode_ret);
+
+		[DllImport (DLL)]
+		public extern static int clEnqueueUnmapMemObject (
+			IntPtr command_queue,
+			IntPtr memobj,
+			IntPtr mapped_ptr,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			out IntPtr event_wait);
+
+		[DllImport (DLL)]
+		public extern static int clEnqueueUnmapMemObject (
+			IntPtr command_queue,
+			IntPtr memobj,
+			IntPtr mapped_ptr,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			IntPtr event_wait);
+
+		[DllImport (DLL)]
 		public extern static int clGetMemObjectInfo (
 			IntPtr memobj,
 			MemInfo param_name,
@@ -644,6 +688,13 @@ namespace openCL
 	{
 		False = 0,
 		True = 1
+	}
+
+	[Flags]
+	public enum MapFlags : long
+	{
+		Read = 1 << 0,
+		Write = 1 << 1
 	}
 
 	public enum ProgramInfo : uint

@@ -52,15 +52,20 @@ namespace openCL
 		{
 			GCHandle handle = GCHandle.Alloc (dst, GCHandleType.Pinned);
 			try {
-				IntPtr dst_ptr = new IntPtr (handle.AddrOfPinnedObject ().ToInt64 () + dst_offset);
-				IntPtr[] waits = wait_list == null ? null : EventHandle.ToIntPtrArray (wait_list);
-				uint num_waits = waits == null ? 0 : (uint)waits.Length;
-				int errcode = Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.True, new IntPtr (buf_offset), new IntPtr (size),
-					dst_ptr, num_waits, waits, IntPtr.Zero);
-				OpenCLException.Check (errcode);
+				ReadBuffer (buf, buf_offset, handle.AddrOfPinnedObject (), dst_offset, size, null);
 			} finally {
 				handle.Free ();
 			}
+		}
+
+		public void ReadBuffer (Memory buf, int buf_offset, IntPtr dst, int dst_offset, int size, EventHandle[] wait_list)
+		{
+			IntPtr dst_ptr = new IntPtr (dst.ToInt64 () + dst_offset);
+			IntPtr[] waits = wait_list == null ? null : EventHandle.ToIntPtrArray (wait_list);
+			uint num_waits = waits == null ? 0 : (uint)waits.Length;
+			int errcode = Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.True, new IntPtr (buf_offset), new IntPtr (size),
+				dst_ptr, num_waits, waits, IntPtr.Zero);
+			OpenCLException.Check (errcode);
 		}
 
 		public void ReadBufferAsync (Memory buf, int buf_offset, object dst, int dst_offset, int size, out EventHandle eventHandle)
@@ -72,17 +77,22 @@ namespace openCL
 		{
 			GCHandle handle = GCHandle.Alloc (dst, GCHandleType.Pinned);
 			try {
-				IntPtr dst_ptr = new IntPtr (handle.AddrOfPinnedObject ().ToInt64 () + dst_offset);
-				IntPtr[] waits = EventHandle.ToIntPtrArray (wait_list);
-				uint num_waits = waits == null ? 0 : (uint)waits.Length;
-				IntPtr event_handle;
-				int errcode = Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
-					dst_ptr, num_waits, waits, out event_handle);
-				OpenCLException.Check (errcode);
-				eventHandle = new EventHandle (event_handle);
+				ReadBufferAsync (buf, buf_offset, handle.AddrOfPinnedObject (), dst_offset, size, wait_list, out eventHandle);
 			} finally {
 				handle.Free ();
 			}
+		}
+
+		public void ReadBufferAsync (Memory buf, int buf_offset, IntPtr dst, int dst_offset, int size, EventHandle[] wait_list, out EventHandle eventHandle)
+		{
+			IntPtr dst_ptr = new IntPtr (dst.ToInt64 () + dst_offset);
+			IntPtr[] waits = EventHandle.ToIntPtrArray (wait_list);
+			uint num_waits = waits == null ? 0 : (uint)waits.Length;
+			IntPtr event_handle;
+			int errcode = Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+				dst_ptr, num_waits, waits, out event_handle);
+			OpenCLException.Check (errcode);
+			eventHandle = new EventHandle (event_handle);
 		}
 		#endregion
 
@@ -96,15 +106,20 @@ namespace openCL
 		{
 			GCHandle handle = GCHandle.Alloc (src, GCHandleType.Pinned);
 			try {
-				IntPtr src_ptr = new IntPtr (handle.AddrOfPinnedObject ().ToInt64 () + src_offset);
-				IntPtr[] waits = wait_list == null ? null : EventHandle.ToIntPtrArray (wait_list);
-				uint num_waits = waits == null ? 0 : (uint)waits.Length;
-				int errcode = Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.True, new IntPtr (buf_offset), new IntPtr (size),
-					src_ptr, num_waits, waits, IntPtr.Zero);
-				OpenCLException.Check (errcode);
+				WriteBuffer (buf, buf_offset, handle.AddrOfPinnedObject (), src_offset, size, wait_list);
 			} finally {
 				handle.Free ();
 			}
+		}
+
+		public void WriteBuffer (Memory buf, int buf_offset, IntPtr src, int src_offset, int size, EventHandle[] wait_list)
+		{
+			IntPtr src_ptr = new IntPtr (src.ToInt64 () + src_offset);
+			IntPtr[] waits = wait_list == null ? null : EventHandle.ToIntPtrArray (wait_list);
+			uint num_waits = waits == null ? 0 : (uint)waits.Length;
+			int errcode = Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+				src_ptr, num_waits, waits, IntPtr.Zero);
+			OpenCLException.Check (errcode);
 		}
 
 		public void WriteBufferAsync (Memory buf, int buf_offset, object src, int src_offset, int size, out EventHandle eventHandle)
@@ -116,17 +131,22 @@ namespace openCL
 		{
 			GCHandle handle = GCHandle.Alloc (src, GCHandleType.Pinned);
 			try {
-				IntPtr src_ptr = new IntPtr (handle.AddrOfPinnedObject ().ToInt64 () + src_offset);
-				IntPtr[] waits = EventHandle.ToIntPtrArray (wait_list);
-				uint num_waits = waits == null ? 0 : (uint)waits.Length;
-				IntPtr event_handle;
-				int errcode = Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
-					src_ptr, num_waits, waits, out event_handle);
-				OpenCLException.Check (errcode);
-				eventHandle = new EventHandle (event_handle);
+				WriteBufferAsync (buf, buf_offset, handle.AddrOfPinnedObject (), src_offset, size, wait_list, out eventHandle);
 			} finally {
 				handle.Free ();
 			}
+		}
+
+		public void WriteBufferAsync (Memory buf, int buf_offset, IntPtr src, int src_offset, int size, EventHandle[] wait_list, out EventHandle eventHandle)
+		{
+			IntPtr src_ptr = new IntPtr (src.ToInt64 () + src_offset);
+			IntPtr[] waits = EventHandle.ToIntPtrArray (wait_list);
+			uint num_waits = waits == null ? 0 : (uint)waits.Length;
+			IntPtr event_handle;
+			int errcode = Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+				src_ptr, num_waits, waits, out event_handle);
+			OpenCLException.Check (errcode);
+			eventHandle = new EventHandle (event_handle);
 		}
 		#endregion
 
@@ -157,6 +177,23 @@ namespace openCL
 				new IntPtr (size), num_waits, waits, out event_handle);
 			OpenCLException.Check (errcode);
 			eventHandle = new EventHandle (event_handle);
+		}
+		#endregion
+
+		#region Mapping / Unmapping
+		public IntPtr Mapping (Memory buffer, MapFlags flags, int offset, int cb)
+		{
+			int errcode;
+			IntPtr ptr = Native.clEnqueueMapBuffer (_handle, buffer.Handle, CL_Bool.True, flags,
+				new IntPtr (offset), new IntPtr (cb), 0, null, IntPtr.Zero, out errcode);
+			OpenCLException.Check (errcode);
+			return ptr;
+		}
+
+		public void Unmapping (Memory buffer, IntPtr mapped)
+		{
+			OpenCLException.Check (Native.clEnqueueUnmapMemObject (_handle, buffer.Handle,
+				mapped, 0, null, IntPtr.Zero));
 		}
 		#endregion
 
