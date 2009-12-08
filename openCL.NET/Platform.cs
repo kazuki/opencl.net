@@ -22,16 +22,32 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace openCL
 {
-	public class Platform
+	public class Platform : HandleBase
 	{
-		IntPtr _handle;
+		static Dictionary<IntPtr, Platform> _cache = new Dictionary<IntPtr, Platform> (4);
 
-		internal Platform (IntPtr handle)
+		Platform (IntPtr handle) : base (handle)
 		{
-			_handle = handle;
+		}
+
+		public static Platform CreatePlatform (IntPtr handle)
+		{
+			Platform platform;
+			lock (_cache) {
+				if (!_cache.TryGetValue (handle, out platform)) {
+					platform = new Platform (handle);
+					_cache.Add (handle, platform);
+				}
+			}
+			return platform;
+		}
+
+		protected override void Dispose (bool disposing)
+		{
 		}
 
 		public static Platform[] GetPlatforms ()
@@ -42,7 +58,7 @@ namespace openCL
 			OpenCLException.Check (Native.clGetPlatformIDs (num_platforms, ids, out num_platforms));
 			Platform[] platforms = new Platform[ids.Length];
 			for (int i = 0; i < platforms.Length; i ++)
-				platforms[i] = new Platform (ids[i]);
+				platforms[i] = Platform.CreatePlatform (ids[i]);
 			return platforms;
 		}
 
@@ -54,7 +70,7 @@ namespace openCL
 			OpenCLException.Check (Native.clGetDeviceIDs (_handle, type, num_devices, ids, out num_devices));
 			Device[] devices = new Device[ids.Length];
 			for (int i = 0; i < devices.Length; i++)
-				devices[i] = new Device (ids[i]);
+				devices[i] = Device.CreateDevice (ids[i]);
 			return devices;
 		}
 

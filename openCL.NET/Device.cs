@@ -23,22 +23,31 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
 
 namespace openCL
 {
-	public class Device
+	public class Device : HandleBase
 	{
-		IntPtr _handle;
+		static Dictionary<IntPtr, Device> _cache = new Dictionary<IntPtr, Device> (4);
 
-		internal Device (IntPtr handle)
+		Device (IntPtr handle) : base (handle)
 		{
-			_handle = handle;
 		}
 
-		internal IntPtr Handle {
-			get { return _handle; }
+		public static Device CreateDevice (IntPtr handle)
+		{
+			Device device;
+			lock (_cache) {
+				if (!_cache.TryGetValue (handle, out device)) {
+					device = new Device (handle);
+					_cache.Add (handle, device);
+				}
+			}
+			return device;
+		}
+
+		protected override void Dispose (bool disposing)
+		{
 		}
 
 		public DeviceType Type {
@@ -220,7 +229,7 @@ namespace openCL
 		}
 
 		public Platform Platform {
-			get { return new Platform (Native.QueryInfoSize (QueryType.Device, _handle, DeviceInfo.Platform)); }
+			get { return Platform.CreatePlatform (Native.QueryInfoSize (QueryType.Device, _handle, DeviceInfo.Platform)); }
 		}
 
 		public string Name {

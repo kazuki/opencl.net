@@ -28,10 +28,11 @@ namespace openCL
 {
 	public class Program : HandleBase
 	{
-		public Program (IntPtr handle, bool incrementRef) : base (handle)
+		Context _context;
+
+		internal Program (Context context, IntPtr handle) : base (handle)
 		{
-			if (incrementRef)
-				Native.clRetainProgram (handle);
+			_context = context;
 		}
 
 		protected override void Dispose (bool disposing)
@@ -54,7 +55,7 @@ namespace openCL
 			int errcode;
 			IntPtr kernel = Native.clCreateKernel (_handle, name, out errcode);
 			OpenCLException.Check (errcode);
-			return new Kernel (kernel);
+			return new Kernel (this, kernel);
 		}
 
 		public string GetBuildLog (Device device)
@@ -77,7 +78,7 @@ namespace openCL
 		}
 
 		public Context Context {
-			get { return new Context (Native.QueryInfoIntPtr (QueryType.Program, _handle, ProgramInfo.Context), true); }
+			get { return _context; }
 		}
 
 		public uint NumberOfDevices {

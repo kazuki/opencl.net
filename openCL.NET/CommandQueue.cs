@@ -28,10 +28,13 @@ namespace openCL
 {
 	public sealed class CommandQueue : HandleBase
 	{
-		internal CommandQueue (IntPtr handle, bool incrementRef) : base (handle)
+		Context _context;
+		Device _device;
+
+		internal CommandQueue (Context context, Device device, IntPtr handle) : base (handle)
 		{
-			if (incrementRef)
-				Native.clRetainCommandQueue (handle);
+			_context = context;
+			_device = device;
 		}
 
 		protected override void Dispose (bool disposing)
@@ -245,11 +248,11 @@ namespace openCL
 
 		#region Info
 		public Context Context {
-			get { return new Context (Native.QueryInfoSize (QueryType.CommandQueue, _handle, CommandQueueInfo.Context), true); }
+			get { return _context; }
 		}
 
 		public Device Device {
-			get { return new Device (Native.QueryInfoSize (QueryType.CommandQueue, _handle, CommandQueueInfo.Device)); }
+			get { return _device; }
 		}
 
 		public uint ReferenceCount {

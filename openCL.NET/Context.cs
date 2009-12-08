@@ -31,16 +31,22 @@ namespace openCL
 	{
 		Device[] _devices = null;
 
-		internal Context (IntPtr handle, bool incrementRef) : base (handle)
-		{
-			if (incrementRef)
-				Native.clRetainContext (handle);
-		}
-
 		public Context (DeviceType deviceType) : base (IntPtr.Zero)
 		{
 			int errcode;
 			_handle = Native.clCreateContextFromType (null, deviceType, IntPtr.Zero, IntPtr.Zero, out errcode);
+			OpenCLException.Check (errcode);
+		}
+
+		public Context (Device device) : this (new Device[] {device})
+		{
+		}
+
+		public Context (Device[] devices) : base (IntPtr.Zero)
+		{
+			int errcode;
+			_handle = Native.clCreateContext (null, (uint)devices.Length,
+				HandleBase.ToHandleArray<Device> (devices), IntPtr.Zero, IntPtr.Zero, out errcode);
 			OpenCLException.Check (errcode);
 		}
 
@@ -54,7 +60,7 @@ namespace openCL
 			int errcode;
 			IntPtr command_queue = Native.clCreateCommandQueue (_handle, device.Handle, properties, out errcode);
 			OpenCLException.Check (errcode);
-			return new CommandQueue (command_queue, false);
+			return new CommandQueue (this, device, command_queue);
 		}
 
 		public Memory CreateBuffer (MemoryFlags flags, int size)
@@ -62,7 +68,7 @@ namespace openCL
 			int errcode;
 			IntPtr membuf = Native.clCreateBuffer (_handle, flags, new IntPtr (size), IntPtr.Zero, out errcode);
 			OpenCLException.Check (errcode);
-			return new Memory (membuf, false);
+			return new Memory (this, membuf);
 		}
 
 		public Memory CreateBuffer (MemoryFlags flags, int size, GCHandle hostPtr)
@@ -70,7 +76,7 @@ namespace openCL
 			int errcode;
 			IntPtr membuf = Native.clCreateBuffer (_handle, flags, new IntPtr (size), hostPtr.AddrOfPinnedObject (), out errcode);
 			OpenCLException.Check (errcode);
-			return new Memory (membuf, false);
+			return new Memory (this, membuf);
 		}
 
 		public Program CreateProgram (string src)
@@ -84,7 +90,7 @@ namespace openCL
 				IntPtr prog = Native.clCreateProgramWithSource (_handle, 1, handle2.AddrOfPinnedObject (),
 					handle3.AddrOfPinnedObject (), out errcode);
 				OpenCLException.Check (errcode);
-				return new Program (prog, false);
+				return new Program (this, prog);
 			} finally {
 				handle.Free ();
 				handle2.Free ();
@@ -100,7 +106,11 @@ namespace openCL
 		public Program CreateProgram (string src, Device[] devices, string build_options)
 		{
 			Program prog = CreateProgram (src);
-			prog.Build (devices, build_options);
+			try {
+				prog.Build (devices, build_options);
+			} finally {
+				Console.WriteLine (prog.GetBuildLog (devices[0]));
+			}
 			return prog;
 		}
 
@@ -114,7 +124,7 @@ namespace openCL
 					IntPtr[] ptrs = Native.QueryInfoIntPtrArray (QueryType.Context, _handle, ContextInfo.Devices);
 					Device[] devices = new Device[ptrs.Length];
 					for (int i = 0; i < devices.Length; i ++)
-						devices[i] = new Device (ptrs[i]);
+						devices[i] = Device.CreateDevice (ptrs[i]);
 					_devices = devices;
 				}
 				return _devices;

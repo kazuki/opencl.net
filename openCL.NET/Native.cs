@@ -71,6 +71,15 @@ namespace openCL
 
 		#region 4.3 Contexts
 		[DllImport (DLL)]
+		public extern static IntPtr clCreateContext (
+			IntPtr[] properties,
+			uint num_devices,
+			IntPtr[] devices,
+			IntPtr pfn_notify,
+			IntPtr user_data,
+			out int errcode_ret);
+
+		[DllImport (DLL)]
 		public extern static IntPtr clCreateContextFromType (
 			IntPtr[] properties,
 			DeviceType device_type,

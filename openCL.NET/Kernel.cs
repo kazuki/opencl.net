@@ -29,10 +29,12 @@ namespace openCL
 {
 	public class Kernel : HandleBase
 	{
+		Program _prog;
 		List<GCHandle> _pinnedObjects = new List<GCHandle> ();
 
-		public Kernel (IntPtr handle) : base (handle)
+		internal Kernel (Program prog, IntPtr handle) : base (handle)
 		{
+			_prog = prog;
 		}
 
 		protected override void Dispose (bool disposing)
@@ -73,11 +75,11 @@ namespace openCL
 		}
 
 		public Context Context {
-			get { return new Context (Native.QueryInfoIntPtr (QueryType.Kernel, _handle, KernelInfo.Context), true); }
+			get { return _prog.Context; }
 		}
 
 		public Program Program {
-			get { return new Program (Native.QueryInfoIntPtr (QueryType.Kernel, _handle, KernelInfo.Program), true); }
+			get { return _prog; }
 		}
 
 		public int GetWorkGroupSize (Device device)

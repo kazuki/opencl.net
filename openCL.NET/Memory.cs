@@ -27,10 +27,11 @@ namespace openCL
 {
 	public class Memory : HandleBase
 	{
-		internal Memory (IntPtr handle, bool incrementRef) : base (handle)
+		Context _context;
+
+		internal Memory (Context context, IntPtr handle) : base (handle)
 		{
-			if (incrementRef)
-				Native.clRetainMemObject (handle);
+			_context = context;
 		}
 
 		protected override void Dispose (bool disposing)
@@ -63,7 +64,7 @@ namespace openCL
 		}
 
 		public Context Context {
-			get { return new Context (Native.QueryInfoSize (QueryType.Memory, _handle, MemInfo.Context), true); }
+			get { return _context; }
 		}
 	}
 }

@@ -60,5 +60,13 @@ namespace openCL
 		internal IntPtr Handle {
 			get { return _handle; }
 		}
+
+		public static IntPtr[] ToHandleArray<T> (T[] array) where T : HandleBase
+		{
+			IntPtr[] handles = new IntPtr[array.Length];
+			for (int i = 0; i < handles.Length; i++)
+				handles[i] = array[i].Handle;
+			return handles;
+		}
 	}
 }
