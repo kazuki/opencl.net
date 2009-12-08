@@ -197,6 +197,18 @@ namespace openCL
 			out IntPtr event_wait);
 
 		[DllImport (DLL)]
+		public extern static int clEnqueueCopyBuffer (
+			IntPtr command_queue,
+			IntPtr src_buffer,
+			IntPtr dst_buffer,
+			IntPtr src_offset,
+			IntPtr dst_offset,
+			IntPtr cb,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			IntPtr event_wait);
+
+		[DllImport (DLL)]
 		public extern static int clRetainMemObject (IntPtr memobj);
 
 		[DllImport (DLL)]
@@ -354,6 +366,15 @@ namespace openCL
 		);
 
 		[DllImport (DLL)]
+		public extern static int clEnqueueTask (
+			IntPtr command_queue,
+			IntPtr kernel,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			IntPtr event_wait
+		);
+
+		[DllImport (DLL)]
 		public extern static int clEnqueueNDRangeKernel (
 			IntPtr command_queue,
 			IntPtr kernel,
@@ -364,6 +385,19 @@ namespace openCL
 			uint num_events_in_wait_list,
 			IntPtr[] event_wait_list,
 			out IntPtr event_wait
+		);
+
+		[DllImport (DLL)]
+		public extern static int clEnqueueNDRangeKernel (
+			IntPtr command_queue,
+			IntPtr kernel,
+			uint work_dim,
+			IntPtr[] global_work_offset,
+			IntPtr[] global_work_size,
+			IntPtr[] local_work_size,
+			uint num_events_in_wait_list,
+			IntPtr[] event_wait_list,
+			IntPtr event_wait
 		);
 		#endregion
 
