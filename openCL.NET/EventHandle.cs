@@ -58,5 +58,21 @@ namespace openCL
 				array[i] = waits[i]._handle;
 			return array;
 		}
+
+		public TimeSpan ProfilingCommandQueued {
+			get { return Native.QueryInfoTimeSpanFromNanoseconds (QueryType.Profiling, _handle, ProfilingInfo.CommandQueued); }
+		}
+
+		public TimeSpan ProfilingCommandSubmit {
+			get { return Native.QueryInfoTimeSpanFromNanoseconds (QueryType.Profiling, _handle, ProfilingInfo.CommandSubmit); }
+		}
+
+		public TimeSpan ProfilingCommandStart {
+			get { return Native.QueryInfoTimeSpanFromNanoseconds (QueryType.Profiling, _handle, ProfilingInfo.CommandStart); }
+		}
+
+		public TimeSpan ProfilingCommandEnd {
+			get { return Native.QueryInfoTimeSpanFromNanoseconds (QueryType.Profiling, _handle, ProfilingInfo.CommandEnd); }
+		}
 	}
 }

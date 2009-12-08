@@ -412,6 +412,16 @@ namespace openCL
 		public extern static int clReleaseEvent (IntPtr event_handle);
 		#endregion
 
+		#region 5.9 Profiling Operations on Memory Objects and Kernels
+		[DllImport (DLL)]
+		public extern static int clGetEventProfilingInfo (
+			IntPtr event_handle,
+			ProfilingInfo param_name,
+			IntPtr param_value_size,
+			byte[] param_value,
+			out IntPtr param_value_size_ret);
+		#endregion
+
 		#region 5.10 Flush and Finish
 		[DllImport (DLL)]
 		public extern static int clFlush (IntPtr command_queue);
@@ -453,6 +463,7 @@ namespace openCL
 				case QueryType.ProgramBuild: name = "clGetProgramBuildInfo"; break;
 				case QueryType.Kernel: name = "clGetKernelInfo"; break;
 				case QueryType.KernelWorkGroup: name = "clGetKernelWorkGroupInfo"; break;
+				case QueryType.Profiling: name = "clGetEventProfilingInfo"; break;
 				default: throw new ArgumentException ();
 			}
 			return typeof (Native).GetMethod (name, BindingFlags.Static | BindingFlags.Public);
@@ -554,6 +565,14 @@ namespace openCL
 				array[i] = Native.ToIntPtr (buf, i);
 			return array;
 		}
+
+		public static TimeSpan QueryInfoTimeSpanFromNanoseconds (QueryType type, params object[] args)
+		{
+			byte[] buf = new byte[8];
+			QueryInfoDirect (type, buf, args);
+			ulong nanosec = BitConverter.ToUInt64 (buf, 0);
+			return new TimeSpan ((long)(nanosec / 100));
+		}
 		#endregion
 	}
 
@@ -568,6 +587,7 @@ namespace openCL
 		ProgramBuild,
 		Kernel,
 		KernelWorkGroup,
+		Profiling
 	}
 
 	[Flags]
@@ -779,5 +799,13 @@ namespace openCL
 		WorkGroupSize = 0x11B0,
 		CompileWorkGroupSize = 0x11B1,
 		LocalMemSize = 0x11B2,
+	}
+
+	public enum ProfilingInfo : uint
+	{
+		CommandQueued = 0x1280,
+		CommandSubmit = 0x1281,
+		CommandStart = 0x1282,
+		CommandEnd = 0x1283,
 	}
 }
