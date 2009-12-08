@@ -93,11 +93,11 @@ namespace openCL
 				CL_Bool is_blocking = (blocking ? CL_Bool.True : CL_Bool.False);
 				if (outputEventHandle) {
 					IntPtr event_handle;
-					OpenCLException.Check (Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+					OpenCLException.Check (Native.clEnqueueReadBuffer (_handle, buf.Handle, is_blocking, new IntPtr (buf_offset), new IntPtr (size),
 						dst_ptr, num_waits, waits, out event_handle));
 					eventHandle = new EventHandle (event_handle);
 				} else {
-					OpenCLException.Check (Native.clEnqueueReadBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+					OpenCLException.Check (Native.clEnqueueReadBuffer (_handle, buf.Handle, is_blocking, new IntPtr (buf_offset), new IntPtr (size),
 						dst_ptr, num_waits, waits, IntPtr.Zero));
 					eventHandle = null;
 				}
@@ -159,11 +159,11 @@ namespace openCL
 				CL_Bool is_blocking = (blocking ? CL_Bool.True : CL_Bool.False);
 				if (outputEventHandle) {
 					IntPtr event_handle;
-					OpenCLException.Check (Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+					OpenCLException.Check (Native.clEnqueueWriteBuffer (_handle, buf.Handle, is_blocking, new IntPtr (buf_offset), new IntPtr (size),
 						src_ptr, num_waits, waits, out event_handle));
 					eventHandle = new EventHandle (event_handle);
 				} else {
-					OpenCLException.Check (Native.clEnqueueWriteBuffer (_handle, buf.Handle, CL_Bool.False, new IntPtr (buf_offset), new IntPtr (size),
+					OpenCLException.Check (Native.clEnqueueWriteBuffer (_handle, buf.Handle, is_blocking, new IntPtr (buf_offset), new IntPtr (size),
 						src_ptr, num_waits, waits, IntPtr.Zero));
 					eventHandle = null;
 				}
