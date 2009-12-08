@@ -22,6 +22,7 @@
 //
 
 using System;
+using System.Diagnostics;
 using openCL;
 
 namespace Test
@@ -30,40 +31,118 @@ namespace Test
 	{
 		static void Main (string[] args)
 		{
-			int bytes = 1024;
-			uint[] initValues = new uint[bytes / 4];
-			uint[] actual = new uint[initValues.Length];
-			using (Context context = new Context (DeviceType.GPU))
-			using (CommandQueue queue = context.CreateCommandQueue (context.Devices[0], CommandQueueProperties.Default))
-			using (Memory mem = context.CreateBuffer (MemoryFlags.ReadWrite, bytes))
-			using (Program prog = context.CreateProgram (OpenCL_TestProgram)) {
-				prog.Build (new Device[] {context.Devices[0]}, null);
-				EventHandle write_event;
-				queue.WriteBufferAsync (mem, 0, initValues, 0, bytes, out write_event);
-				using (Kernel kernel = prog.CreateKernel ("test")) {
-					kernel.SetArgument (0, mem);
-					queue.Execute (kernel, null, new int[]{bytes / 2}, new int[] {64}, new EventHandle[] {write_event});
+			Platform[] platforms = Platform.GetPlatforms ();
+			for (int i = 0; i < platforms.Length; i++) {
+				Console.WriteLine ("Platform={0}", i);
+				Console.WriteLine ("  Name       = {0}", platforms[i].Name);
+				Console.WriteLine ("  Vendor     = {0}", platforms[i].Vendor);
+				Console.WriteLine ("  Version    = {0}", platforms[i].Version);
+				Console.WriteLine ("  Profile    = {0}", platforms[i].Profile);
+				Console.WriteLine ("  Extensions = {0}", platforms[i].Extensions);
+				Device[] devices = platforms[0].GetDevices (DeviceType.All);
+				for (int j = 0; j < devices.Length; j++) {
+					Console.WriteLine ("  Device={0}", j);
+					Console.WriteLine ("    Name   = {0}", devices[j].Name);
+					Console.WriteLine ("    Vendor = {0}", devices[j].Vendor);
+					Console.WriteLine ("    MaxComputeUnits = {0}", devices[j].MaxComputeUnits);
 				}
-				queue.ReadBuffer (mem, 0, actual, 0, bytes);
 			}
-			for (int i = 0; i < bytes / 4; i += 128) {
-				for (int j = 0; j < 64; j ++)
-					if (actual[i + j * 2] != i / 128 || actual[i + j * 2 + 1] != j) {
-						Console.WriteLine ("err");
-						i = bytes;
-						break;
-					}
+			
+			int blockSize = 16;
+			int matrixSize = 1024;
+			int matrixBytes = matrixSize * matrixSize * 4;
+			float[] matrixA = new float[matrixSize * matrixSize];
+			float[] matrixB = new float[matrixSize * matrixSize];
+			float[] matrixR = new float[matrixSize * matrixSize];
+			float[] matrixCPU = new float[matrixSize * matrixSize];
+
+			int[] global_threads = new int[] {matrixSize, matrixSize};
+			int[] local_threads = new int[] {blockSize, blockSize};
+			int blockCacheBytes = blockSize * blockSize * 4;
+
+			Random rnd = new Random ();
+			for (int i = 0; i < matrixA.Length; i ++) {
+				matrixA[i] = (float)rnd.NextDouble ();
+				matrixB[i] = (float)rnd.NextDouble ();
 			}
-			Console.WriteLine ("cmpl.");
-			Console.ReadLine ();
+
+			Stopwatch sw;
+			Device device;
+			using (Context context = new Context (DeviceType.GPU))
+			using (CommandQueue queue = context.CreateCommandQueue (device = context.Devices[0], CommandQueueProperties.Default))
+			using (Memory memA = context.CreateBuffer (MemoryFlags.ReadOnly, matrixBytes))
+			using (Memory memB = context.CreateBuffer (MemoryFlags.ReadOnly, matrixBytes))
+			using (Memory memC = context.CreateBuffer (MemoryFlags.WriteOnly, matrixBytes))
+			using (Program prog = context.CreateProgram (OpenCL_TestProgram, device, null))
+			using (Kernel kernel = prog.CreateKernel ("multMatrix")) {
+				kernel.SetArgument (0, memA);
+				kernel.SetArgument (1, memB);
+				kernel.SetArgument (2, memC);
+				kernel.SetLocalDataShare (3, blockCacheBytes);
+				kernel.SetLocalDataShare (4, blockCacheBytes);
+				kernel.SetArgument (5, matrixSize, 4);
+				kernel.SetArgument (6, blockSize, 4);
+
+				queue.WriteBuffer (memA, 0, matrixA, 0, matrixBytes);
+				queue.WriteBuffer (memB, 0, matrixB, 0, matrixBytes);
+				
+				sw = Stopwatch.StartNew ();
+				queue.Execute (kernel, null, global_threads, local_threads);
+				sw.Stop ();
+				Console.WriteLine ("GPU: {0:f4}ms", sw.Elapsed.TotalMilliseconds);
+
+				queue.ReadBuffer (memC, 0,  matrixR, 0, matrixBytes);
+			}
+
+			sw = Stopwatch.StartNew ();
+			for (int i = 0; i < matrixSize; i ++) {
+				for (int j = 0; j < matrixSize; j ++) {
+					for (int k = 0; k < matrixSize; k ++)
+						matrixCPU[i * matrixSize + j] += matrixA[i * matrixSize + k] * matrixB[k * matrixSize + j];
+				}
+			}
+			sw.Stop ();
+			Console.WriteLine ("CPU: {0:f4}ms", sw.Elapsed.TotalMilliseconds);
+
+			for (int i = 0; i < matrixR.Length; i ++) {
+				if (matrixR[i] != matrixCPU[i]) {
+					Console.WriteLine ("Error");
+					return;
+				}
+			}
+			Console.WriteLine ("OK");
 		}
 
 		static string OpenCL_TestProgram =
-@"__kernel void test (__global uint *state) {
-	size_t group_id = get_group_id (0);
-	size_t local_id = get_local_id (0);
-	state[get_global_id(0) * 2] = group_id;
-	state[get_global_id(0) * 2 + 1] = local_id;
+@"__kernel void multMatrix (__global float *a, __global float *b, __global float *c,
+                            __local float *local_a, __local float *local_b, const int width, const int blockSize) {
+	int bx = get_group_id(0);
+	int by = get_group_id(1);
+	int tx = get_local_id(0); 
+	int ty = get_local_id(1);
+	int n = width / blockSize;
+	float sum = 0;
+
+	for (int i = 0; i < n; i++) {
+		int globalIdx0 = i  * blockSize + tx;
+		int globalIdy0 = by * blockSize + ty;
+		int globalId0  = globalIdy0 * width + globalIdx0;
+		int globalIdx1 = bx * blockSize + tx;
+		int globalIdy1 = i  * blockSize + ty;
+		int globalId1  = globalIdy1 * width + globalIdx1;
+		local_a[ty * blockSize + tx] = a[globalId0];
+		local_b[ty * blockSize + tx] = b[globalId1];
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		for (int k = 0; k < blockSize; k++)
+			sum += local_a[ty * blockSize + k] * local_b[k * blockSize + tx];
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	int x  = get_global_id(0);
+	int y  = get_global_id(1);
+	int outIndex = y * width + x;
+	c[outIndex] = sum;
 }";
 	}
 }
