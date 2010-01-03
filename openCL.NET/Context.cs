@@ -31,21 +31,43 @@ namespace openCL
 	{
 		Device[] _devices = null;
 
-		public Context (DeviceType deviceType) : base (IntPtr.Zero)
+		public Context (DeviceType deviceType) : this (null, deviceType)
 		{
+		}
+
+		public Context (Platform platform, DeviceType deviceType) : base (IntPtr.Zero)
+		{
+			if (platform == null)
+				platform = Platform.GetPlatforms ()[0];
 			int errcode;
-			_handle = Native.clCreateContextFromType (null, deviceType, IntPtr.Zero, IntPtr.Zero, out errcode);
+			IntPtr[] properties = new IntPtr[] {
+				new IntPtr ((int)ContextProperties.Platform),
+				platform.Handle,
+				IntPtr.Zero
+			};
+			_handle = Native.clCreateContextFromType (properties, deviceType, IntPtr.Zero, IntPtr.Zero, out errcode);
 			OpenCLException.Check (errcode);
 		}
 
-		public Context (Device device) : this (new Device[] {device})
+		public Context (Device device) : this (null, new Device[] {device})
 		{
 		}
 
-		public Context (Device[] devices) : base (IntPtr.Zero)
+		public Context (Device[] devices) : this (null, devices)
 		{
+		}
+
+		public Context (Platform platform, Device[] devices) : base (IntPtr.Zero)
+		{
+			if (platform == null)
+				platform = Platform.GetPlatforms ()[0];
 			int errcode;
-			_handle = Native.clCreateContext (null, (uint)devices.Length,
+			IntPtr[] properties = new IntPtr[] {
+				new IntPtr ((int)ContextProperties.Platform),
+				platform.Handle,
+				IntPtr.Zero
+			};
+			_handle = Native.clCreateContext (properties, (uint)devices.Length,
 				HandleBase.ToHandleArray<Device> (devices), IntPtr.Zero, IntPtr.Zero, out errcode);
 			OpenCLException.Check (errcode);
 		}
@@ -109,7 +131,7 @@ namespace openCL
 			try {
 				prog.Build (devices, build_options);
 			} finally {
-				Console.WriteLine (prog.GetBuildLog (devices[0]));
+				//Console.WriteLine (prog.GetBuildLog (devices[0]));
 			}
 			return prog;
 		}

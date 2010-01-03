@@ -701,6 +701,11 @@ namespace openCL
 		Properties = 0x1082,
 	}
 
+	public enum ContextProperties : uint
+	{
+		Platform = 0x1084
+	}
+
 	[Flags]
 	public enum CommandQueueProperties : long
 	{
