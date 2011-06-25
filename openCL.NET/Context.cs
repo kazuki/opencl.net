@@ -105,18 +105,15 @@ namespace openCL
 		{
 			byte[] raw = Encoding.UTF8.GetBytes (src);
 			GCHandle handle = GCHandle.Alloc (raw, GCHandleType.Pinned);
-			GCHandle handle2 = GCHandle.Alloc (handle.AddrOfPinnedObject (), GCHandleType.Pinned);
-			GCHandle handle3 = GCHandle.Alloc (raw.Length, GCHandleType.Pinned);
 			try {
 				int errcode;
-				IntPtr prog = Native.clCreateProgramWithSource (_handle, 1, handle2.AddrOfPinnedObject (),
-					handle3.AddrOfPinnedObject (), out errcode);
+				IntPtr p_src = handle.AddrOfPinnedObject ();
+				IntPtr len = new IntPtr (raw.Length);
+				IntPtr prog = Native.clCreateProgramWithSource (_handle, 1, ref p_src, ref len, out errcode);
 				OpenCLException.Check (errcode);
 				return new Program (this, prog);
 			} finally {
 				handle.Free ();
-				handle2.Free ();
-				handle3.Free ();
 			}
 		}
 

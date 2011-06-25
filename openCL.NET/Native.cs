@@ -275,9 +275,9 @@ namespace openCL
 		public extern static IntPtr clCreateProgramWithSource (
 			IntPtr context,
 			uint count,
-			IntPtr strings,
-			IntPtr lengths,
-			out int errcode_ret
+			[In]ref IntPtr strings,
+			[In]ref IntPtr lengths,
+			[Out]out int errcode_ret
 		);
 
 		[DllImport (DLL)]
